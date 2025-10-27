@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "HeroUI Native Example",
-    "slug": "heroui-native-example",
-    "version": "v1.0.0-alpha.14",
+    "name": "CityFlow",
+    "slug": "cityflow",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "heroui-native-example",
+    "scheme": "cityflow",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

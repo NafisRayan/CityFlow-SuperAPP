@@ -1,9 +1,9 @@
 import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  useFonts,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    useFonts,
 } from '@expo-google-fonts/inter';
 import { Slot } from 'expo-router';
 import { HeroUINativeProvider } from 'heroui-native';
@@ -11,10 +11,11 @@ import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import {
-  configureReanimatedLogger,
-  ReanimatedLogLevel,
+    configureReanimatedLogger,
+    ReanimatedLogLevel,
 } from 'react-native-reanimated';
 import '../../global.css';
+import { AppProvider } from '../contexts/app-context';
 import { AppThemeProvider, useAppTheme } from '../contexts/app-theme-context';
 
 configureReanimatedLogger({
@@ -35,7 +36,9 @@ function ThemedLayout() {
         },
       }}
     >
-      <Slot />
+      <AppProvider>
+        <Slot />
+      </AppProvider>
     </HeroUINativeProvider>
   );
 }
