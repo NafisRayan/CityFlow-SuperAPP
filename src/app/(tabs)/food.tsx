@@ -1,46 +1,30 @@
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useApp } from '../../contexts/app-context';
+import { demoRestaurants } from '../../data/demo-data';
 
-const categories = ['All', 'Pizza', 'Burgers', 'Asian', 'Desserts', 'Healthy'];
-
-const restaurants = [
-  {
-    id: '1',
-    name: 'Pizza Palace',
-    image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400',
-    cuisine: ['Italian', 'Pizza'],
-    rating: 4.5,
-    deliveryTime: '25-35 min',
-    deliveryFee: 2.99,
-    distance: 1.2,
-  },
-  {
-    id: '2',
-    name: 'Burger House',
-    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400',
-    cuisine: ['American', 'Burgers'],
-    rating: 4.7,
-    deliveryTime: '20-30 min',
-    deliveryFee: 1.99,
-    distance: 0.8,
-  },
-  {
-    id: '3',
-    name: 'Sushi Express',
-    image: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400',
-    cuisine: ['Japanese', 'Sushi'],
-    rating: 4.8,
-    deliveryTime: '30-40 min',
-    deliveryFee: 3.99,
-    distance: 2.1,
-  },
-];
+const categories = ['All', 'Pizza', 'Burgers', 'Asian', 'Mexican', 'Desserts', 'Healthy'];
 
 export default function FoodScreen() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const { cartItems, user } = useApp();
+
+  const filteredRestaurants = demoRestaurants.filter(restaurant => {
+    const matchesSearch = searchQuery === '' || 
+      restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      restaurant.cuisine.some(c => c.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    const matchesCategory = selectedCategory === 'All' || 
+      restaurant.cuisine.some(c => c.toLowerCase().includes(selectedCategory.toLowerCase()));
+    
+    return matchesSearch && matchesCategory;
+  });
+
+  const totalCartItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -50,15 +34,20 @@ export default function FoodScreen() {
           <View>
             <Text style={styles.greeting}>Deliver to</Text>
             <TouchableOpacity style={styles.locationButton}>
-              <Text style={styles.location}>123 Main St, City</Text>
+              <Text style={styles.location}>{user.addresses[0].street}</Text>
               <Ionicons name="chevron-down" size={20} color="#111827" />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.cartButton}>
+          <TouchableOpacity 
+            style={styles.cartButton}
+            onPress={() => router.push('/cart/food')}
+          >
             <Ionicons name="cart" size={24} color="#111827" />
-            <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>3</Text>
-            </View>
+            {totalCartItems > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>{totalCartItems}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -70,7 +59,13 @@ export default function FoodScreen() {
             placeholder="Search for restaurants or dishes"
             value={searchQuery}
             onChangeText={setSearchQuery}
+            placeholderTextColor="#9CA3AF"
           />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Categories */}
@@ -102,32 +97,67 @@ export default function FoodScreen() {
 
         {/* Restaurants */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Popular Restaurants</Text>
-          {restaurants.map((restaurant) => (
-            <TouchableOpacity key={restaurant.id} style={styles.restaurantCard}>
-              <Image source={{ uri: restaurant.image }} style={styles.restaurantImage} />
-              <View style={styles.restaurantInfo}>
-                <Text style={styles.restaurantName}>{restaurant.name}</Text>
-                <Text style={styles.restaurantCuisine}>
-                  {restaurant.cuisine.join(' • ')}
-                </Text>
-                <View style={styles.restaurantMeta}>
-                  <View style={styles.metaItem}>
-                    <Ionicons name="star" size={16} color="#F59E0B" />
-                    <Text style={styles.metaText}>{restaurant.rating}</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              {searchQuery ? 'Search Results' : 'Popular Restaurants'}
+            </Text>
+            <Text style={styles.resultCount}>
+              {filteredRestaurants.length} {filteredRestaurants.length === 1 ? 'restaurant' : 'restaurants'}
+            </Text>
+          </View>
+          
+          {filteredRestaurants.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="restaurant-outline" size={64} color="#D1D5DB" />
+              <Text style={styles.emptyText}>No restaurants found</Text>
+              <Text style={styles.emptySubtext}>Try adjusting your search or filters</Text>
+            </View>
+          ) : (
+            filteredRestaurants.map((restaurant) => (
+              <TouchableOpacity 
+                key={restaurant.id} 
+                style={styles.restaurantCard}
+                onPress={() => router.push(`/restaurant/${restaurant.id}`)}
+                activeOpacity={0.7}
+              >
+                <Image source={{ uri: restaurant.image }} style={styles.restaurantImage} />
+                {!restaurant.isOpen && (
+                  <View style={styles.closedOverlay}>
+                    <Text style={styles.closedText}>Closed</Text>
                   </View>
-                  <View style={styles.metaItem}>
-                    <Ionicons name="time" size={16} color="#6B7280" />
-                    <Text style={styles.metaText}>{restaurant.deliveryTime}</Text>
+                )}
+                <View style={styles.restaurantInfo}>
+                  <Text style={styles.restaurantName}>{restaurant.name}</Text>
+                  <Text style={styles.restaurantCuisine}>
+                    {restaurant.cuisine.join(' • ')}
+                  </Text>
+                  <View style={styles.restaurantMeta}>
+                    <View style={styles.metaItem}>
+                      <Ionicons name="star" size={16} color="#F59E0B" />
+                      <Text style={styles.metaText}>{restaurant.rating}</Text>
+                      <Text style={styles.metaSubtext}>({restaurant.reviewCount})</Text>
+                    </View>
+                    <View style={styles.metaItem}>
+                      <Ionicons name="time" size={16} color="#6B7280" />
+                      <Text style={styles.metaText}>{restaurant.deliveryTime}</Text>
+                    </View>
+                    <View style={styles.metaItem}>
+                      <Ionicons name="bicycle" size={16} color="#6B7280" />
+                      <Text style={styles.metaText}>${restaurant.deliveryFee}</Text>
+                    </View>
                   </View>
-                  <View style={styles.metaItem}>
-                    <Ionicons name="bicycle" size={16} color="#6B7280" />
-                    <Text style={styles.metaText}>${restaurant.deliveryFee}</Text>
+                  <View style={styles.badgeContainer}>
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>Min ${restaurant.minimumOrder}</Text>
+                    </View>
+                    <View style={[styles.badge, styles.badgeSuccess]}>
+                      <Text style={styles.badgeText}>{restaurant.distance} km</Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))}
+              </TouchableOpacity>
+            ))
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -169,10 +199,11 @@ const styles = StyleSheet.create({
     right: -8,
     backgroundColor: '#EF4444',
     borderRadius: 10,
-    width: 20,
+    minWidth: 20,
     height: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 4,
   },
   cartBadgeText: {
     color: '#FFFFFF',
@@ -186,6 +217,11 @@ const styles = StyleSheet.create({
     margin: 16,
     padding: 12,
     borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   searchInput: {
     flex: 1,
@@ -203,6 +239,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
     marginRight: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   categoryChipSelected: {
     backgroundColor: '#3B82F6',
@@ -218,21 +259,50 @@ const styles = StyleSheet.create({
   section: {
     padding: 16,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#111827',
-    marginBottom: 16,
+  },
+  resultCount: {
+    fontSize: 14,
+    color: '#6B7280',
   },
   restaurantCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginBottom: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   restaurantImage: {
     width: '100%',
     height: 160,
+  },
+  closedOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 160,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closedText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   restaurantInfo: {
     padding: 12,
@@ -258,7 +328,47 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#111827',
     marginLeft: 4,
+  },
+  metaSubtext: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginLeft: 2,
+  },
+  badgeContainer: {
+    flexDirection: 'row',
+    marginTop: 8,
+  },
+  badge: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  badgeSuccess: {
+    backgroundColor: '#ECFDF5',
+  },
+  badgeText: {
+    fontSize: 12,
+    color: '#3B82F6',
+    fontWeight: '600',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginTop: 8,
   },
 });

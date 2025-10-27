@@ -1,57 +1,92 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useApp } from '../../contexts/app-context';
 
 const menuItems = [
-  { id: '1', icon: 'person-outline', title: 'Edit Profile', screen: 'edit-profile' },
-  { id: '2', icon: 'location-outline', title: 'Addresses', screen: 'addresses' },
-  { id: '3', icon: 'card-outline', title: 'Payment Methods', screen: 'payments' },
-  { id: '4', icon: 'time-outline', title: 'Order History', screen: 'orders' },
-  { id: '5', icon: 'heart-outline', title: 'Favorites', screen: 'favorites' },
-  { id: '6', icon: 'notifications-outline', title: 'Notifications', screen: 'notifications' },
-  { id: '7', icon: 'help-circle-outline', title: 'Help & Support', screen: 'support' },
-  { id: '8', icon: 'settings-outline', title: 'Settings', screen: 'settings' },
-];
-
-const stats = [
-  { label: 'Rides', value: '24', icon: 'car' },
-  { label: 'Orders', value: '48', icon: 'restaurant' },
-  { label: 'Services', value: '12', icon: 'construct' },
-  { label: 'Shopping', value: '36', icon: 'cart' },
+  { id: '1', icon: 'person-outline', title: 'Edit Profile', screen: '/profile/edit' },
+  { id: '2', icon: 'location-outline', title: 'Addresses', screen: '/profile/addresses' },
+  { id: '3', icon: 'card-outline', title: 'Payment Methods', screen: '/profile/payments' },
+  { id: '4', icon: 'time-outline', title: 'Order History', screen: '/profile/orders' },
+  { id: '5', icon: 'heart-outline', title: 'Favorites', screen: '/profile/favorites' },
+  { id: '6', icon: 'notifications-outline', title: 'Notifications', screen: '/profile/notifications' },
+  { id: '7', icon: 'help-circle-outline', title: 'Help & Support', screen: '/profile/support' },
+  { id: '8', icon: 'settings-outline', title: 'Settings', screen: '/profile/settings' },
 ];
 
 export default function ProfileScreen() {
+  const { user } = useApp();
+
+  const stats = [
+    { label: 'Rides', value: '24', icon: 'car' },
+    { label: 'Orders', value: '48', icon: 'restaurant' },
+    { label: 'Services', value: '12', icon: 'construct' },
+    { label: 'Shopping', value: '36', icon: 'cart' },
+  ];
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Logout', 
+          style: 'destructive',
+          onPress: () => {
+            // Handle logout
+            Alert.alert('Success', 'You have been logged out');
+          }
+        },
+      ]
+    );
+  };
+
+  const handleMenuPress = (screen: string) => {
+    Alert.alert('Coming Soon', `${screen} feature will be available soon!`);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Profile</Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => Alert.alert('Share', 'Share profile feature coming soon!')}>
             <Ionicons name="share-social-outline" size={24} color="#111827" />
           </TouchableOpacity>
         </View>
 
         {/* Profile Card */}
         <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>JD</Text>
-          </View>
-          <Text style={styles.name}>John Doe</Text>
-          <Text style={styles.email}>john.doe@example.com</Text>
-          <Text style={styles.phone}>+1 (555) 123-4567</Text>
+          {user.avatar ? (
+            <Image source={{ uri: user.avatar }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {user.name.split(' ').map(n => n[0]).join('')}
+              </Text>
+            </View>
+          )}
+          <Text style={styles.name}>{user.name}</Text>
+          <Text style={styles.email}>{user.email}</Text>
+          <Text style={styles.phone}>{user.phone}</Text>
           
           {/* Stats */}
           <View style={styles.statsContainer}>
             {stats.map((stat) => (
-              <View key={stat.label} style={styles.statItem}>
+              <TouchableOpacity 
+                key={stat.label} 
+                style={styles.statItem}
+                onPress={() => Alert.alert(stat.label, `View all ${stat.label.toLowerCase()}`)}
+              >
                 <View style={styles.statIcon}>
                   <Ionicons name={stat.icon as any} size={20} color="#3B82F6" />
                 </View>
                 <Text style={styles.statValue}>{stat.value}</Text>
                 <Text style={styles.statLabel}>{stat.label}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         </View>
@@ -65,6 +100,8 @@ export default function ProfileScreen() {
                 styles.menuItem,
                 index === menuItems.length - 1 && styles.menuItemLast,
               ]}
+              onPress={() => handleMenuPress(item.title)}
+              activeOpacity={0.7}
             >
               <View style={styles.menuItemLeft}>
                 <View style={styles.menuIcon}>
@@ -78,7 +115,11 @@ export default function ProfileScreen() {
         </View>
 
         {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton}>
+        <TouchableOpacity 
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          activeOpacity={0.7}
+        >
           <Ionicons name="log-out-outline" size={22} color="#EF4444" />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
@@ -112,6 +153,11 @@ const styles = StyleSheet.create({
     padding: 24,
     borderRadius: 16,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   avatar: {
     width: 80,
@@ -178,6 +224,11 @@ const styles = StyleSheet.create({
     margin: 16,
     borderRadius: 12,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   menuItem: {
     flexDirection: 'row',
@@ -215,6 +266,11 @@ const styles = StyleSheet.create({
     margin: 16,
     padding: 16,
     borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   logoutText: {
     fontSize: 16,
